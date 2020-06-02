@@ -93,6 +93,9 @@ def main():
 	# Saeed cannot meet on afternoons.
 	model.Add(sum(meetings[(day, time, 'Saeed')] for day in list(slots.keys()) for time in slots[day] if datetime.datetime.strptime(time, '%H:%M') >= datetime.datetime.strptime('14:00', '%H:%M')) == 0)
 
+	# Adriana cannot meet on Wednesdays. 
+	model.Add(sum(meetings[('Wed', time, 'Adriana')] for time in slots['Wed']) == 0)
+
 	solver = ortools.sat.python.cp_model.CpSolver()
 	solver.parameters.linearization_level = 0
 
