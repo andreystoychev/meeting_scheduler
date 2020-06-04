@@ -1,5 +1,8 @@
-import itertools
+import argparse
 import datetime
+import itertools
+import random
+
 import ortools.sat.python.cp_model
 
 
@@ -10,17 +13,17 @@ people = [
 	'Saeed', 'Weiming'
 ]
 slots = {
-	'Mon': ['10:00', '14:00'],
+	'Mon': ['10:00'],
 	'Tue': ['10:00', '14:00'],
 	'Wed': ['10:00', '14:00'],
 	'Thu': ['10:00'],
-	'Fri': ['10:00', '14:00']
+	'Fri': ['10:00']
 }
 num_people_per_meeting = 4
 
 
 class PartialSolutionPrinter(ortools.sat.python.cp_model.CpSolverSolutionCallback):
-	def __init__(self, meetings, solutions_to_print):
+	def __init__(self, meetings, solutions_to_print, max_solutions):
 		ortools.sat.python.cp_model.CpSolverSolutionCallback.__init__(self)
 		self._meetings = meetings
 		if isinstance(solutions_to_print, int):
@@ -29,6 +32,7 @@ class PartialSolutionPrinter(ortools.sat.python.cp_model.CpSolverSolutionCallbac
 			self._solutions_to_print = solutions_to_print
 		else:
 			raise Exception
+		self._max_solutions = max_solutions
 		self._solution_count = 0
 
 	def on_solution_callback(self):
@@ -44,12 +48,15 @@ class PartialSolutionPrinter(ortools.sat.python.cp_model.CpSolverSolutionCallbac
 				print()
 			print()
 		self._solution_count += 1
+		if self._max_solutions is not None and self._solution_count >= self._max_solutions:
+			self.StopSearch()
+
 
 	def solution_count(self):
 		return self._solution_count
 
 
-def main():
+def main(args):
 	model = ortools.sat.python.cp_model.CpModel()
 
 	meetings = {}
@@ -68,9 +75,13 @@ def main():
 		for day in list(slots.keys()):
 			model.Add(sum(meetings[(day, time, person)] for time in slots[day]) <= 1)
 
-	# Each person has at least one meeting per week.
+	# Each person has at least two meetings per week.
 	for person in people:
-		model.Add(sum(meetings[(day, time, person)] for day in list(slots.keys()) for time in slots[day]) >= 1)
+		model.Add(sum(meetings[(day, time, person)] for day in list(slots.keys()) for time in slots[day]) >= 2)
+
+	# Each person has at most three meetings per week.
+	for person in people:
+		model.Add(sum(meetings[(day, time, person)] for day in list(slots.keys()) for time in slots[day]) <= 3)
 
 	# All meetings are unique. I.e. every people combination occurs at most once across all slots.
 	for combination in itertools.combinations(people, num_people_per_meeting):
@@ -93,14 +104,19 @@ def main():
 	# Saeed cannot meet on afternoons.
 	model.Add(sum(meetings[(day, time, 'Saeed')] for day in list(slots.keys()) for time in slots[day] if datetime.datetime.strptime(time, '%H:%M') >= datetime.datetime.strptime('14:00', '%H:%M')) == 0)
 
-	# Adriana cannot meet on Wednesdays. 
+	# Adriana cannot meet on Wednesdays.
 	model.Add(sum(meetings[('Wed', time, 'Adriana')] for time in slots['Wed']) == 0)
 
 	solver = ortools.sat.python.cp_model.CpSolver()
 	solver.parameters.linearization_level = 0
 
-	solutions_to_print = 1
-	solution_printer = PartialSolutionPrinter(meetings, solutions_to_print)
+	if args['rand'] is not None:
+		sols = random.sample(range(args['rand'][1]), args['rand'][0])
+		solution_printer = PartialSolutionPrinter(meetings, sols, max(sols) + 1)
+	elif args['num'] is not None:
+		solution_printer = PartialSolutionPrinter(meetings, list(range(args['num'])), None)
+	elif args['id'] is not None:
+		solution_printer = PartialSolutionPrinter(meetings, args['id'], max(args['id']) + 1)
 	solver.SearchForAllSolutions(model, solution_printer)
 
 	# Statistics.
@@ -113,4 +129,11 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	parser = argparse.ArgumentParser()
+	group = parser.add_mutually_exclusive_group(required=True)
+	group.add_argument('--rand', action='store', metavar=('N', 'M'), dest='rand', type=int, nargs=2, help='print N random solutions from the first M solutions')
+	group.add_argument('--num', action='store', metavar='N', dest='num', type=int, help='print the first N solutions')
+	group.add_argument('--id', action='store', metavar='ID', dest='id', type=int, nargs='+', help='print the solutions with the specified IDs')
+	args = parser.parse_args()
+
+	main(vars(args))
