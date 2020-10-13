@@ -7,18 +7,16 @@ import ortools.sat.python.cp_model
 
 
 people = [
-	'Alice', 'Bob', 'Carol',
-	'David', 'Eve', 'Frank',
-	'Grace', 'Hal', 'Irene'
+	'Rodolphe', 'Malcolm', 'Mónika',
+	'Tom', 'Lukas', 'Dimitris',
+	'Octave', 'Dhruva', 'Thomas',
+	'Luka', 'Raphael', 'Thiago'
+	#'Jin Gyu'
 ]
 slots = {
-	'Mon': ['11:00'],
-	'Tue': ['10:00', '11:00'],
-	'Wed': ['10:00'],
-	#'Thu': ['10:00'],
-	'Fri': ['13:00', '14:00', '15:00']
+	'Thu': ['15:00']
 }
-num_people_per_meeting = 5
+num_people_per_meeting = 4
 
 
 class PartialSolutionPrinter(ortools.sat.python.cp_model.CpSolverSolutionCallback):
@@ -88,38 +86,10 @@ def main(args):
 			for person in people:
 				meetings[(day, time, person)] = model.NewBoolVar('%s__%s__%s' % (day, time, person))
 
-	# Each meeting has exactly 5 people.
+	# Each meeting has exactly 4 people.
 	for day in list(slots.keys()):
 		for time in slots[day]:
 			model.Add(sum(meetings[(day, time, person)] for person in people) == num_people_per_meeting)
-
-	# Each person has at most one meeting per day.
-	#for person in people:
-	#	for day in list(slots.keys()):
-	#		model.Add(sum(meetings[(day, time, person)] for time in slots[day]) <= 1)
-
-	# Each person has at least two meetings per week.
-	for person in people:
-		model.Add(sum(meetings[(day, time, person)] for day in list(slots.keys()) for time in slots[day]) >= 2)
-
-	# Each person has at most three meetings per week.
-	for person in people:
-		model.Add(sum(meetings[(day, time, person)] for day in list(slots.keys()) for time in slots[day]) <= 3)
-
-	# All meetings are unique. I.e. every people combination occurs at most once across all slots.
-	for combination in itertools.combinations(people, num_people_per_meeting):
-		c = []
-		for day in list(slots.keys()):
-			for time in slots[day]:
-				c.append(model.NewBoolVar('(%s)__%s__%s' % (','.join(combination), day, time)))
-				model.AddMinEquality(c[-1], [meetings[(day, time, person)] for person in combination])
-		model.Add(sum(c) <= 1)
-
-	# Alice cannot meet on Tuesdays.
-	#model.Add(sum(meetings[('Tue', time, 'Alice')] for time in slots['Tue']) == 0)
-
-	# Frank cannot meet on mornings.
-	#model.Add(sum(meetings[(day, time, 'Frank')] for day in list(slots.keys()) for time in slots[day] if datetime.datetime.strptime(time, '%H:%M') < datetime.datetime.strptime('12:00', '%H:%M')) == 0)
 
 	solver = ortools.sat.python.cp_model.CpSolver()
 	solver.parameters.linearization_level = 0

@@ -29,4 +29,6 @@ The CP solver seems to be deterministic, as it always produces the same solution
 
 ### Global
 
+Each meeting has exactly 4 people.
+
 ### Personal
