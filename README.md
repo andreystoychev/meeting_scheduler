@@ -29,4 +29,14 @@ The CP solver seems to be deterministic, as it always produces the same solution
 
 ### Global
 
+Each meeting has exactly 5 people.
+<br>
+Each person has at least two meetings per week.
+<br>
+Each person has at most three meetings per week.
+<br>
+All meetings are unique in a week. I.e. every combination of 4 people occurs at most once across all slots in a week.
+
 ### Personal
+
+Prannoy cannot meet on Wednesdays.

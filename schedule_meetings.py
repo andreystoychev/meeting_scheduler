@@ -7,16 +7,17 @@ import ortools.sat.python.cp_model
 
 
 people = [
-	'Alice', 'Bob', 'Carol',
-	'David', 'Eve', 'Frank',
-	'Grace', 'Hal', 'Irene'
+	'Dhruva', 'Michael', 'Mónika',
+	'Adriano', 'Andy', 'Adriana',
+	'Thomas', 'Ethan', 'Prannoy',
+	'Saeed', 'Weiming', 'Ildikó'
 ]
 slots = {
-	'Mon': ['11:00'],
-	'Tue': ['10:00', '11:00'],
+	'Mon': ['10:00'],
+	'Tue': ['10:00'],
 	'Wed': ['10:00'],
-	#'Thu': ['10:00'],
-	'Fri': ['13:00', '14:00', '15:00']
+	'Thu': ['10:00'],
+	'Fri': ['10:00']
 }
 num_people_per_meeting = 5
 
@@ -93,11 +94,6 @@ def main(args):
 		for time in slots[day]:
 			model.Add(sum(meetings[(day, time, person)] for person in people) == num_people_per_meeting)
 
-	# Each person has at most one meeting per day.
-	#for person in people:
-	#	for day in list(slots.keys()):
-	#		model.Add(sum(meetings[(day, time, person)] for time in slots[day]) <= 1)
-
 	# Each person has at least two meetings per week.
 	for person in people:
 		model.Add(sum(meetings[(day, time, person)] for day in list(slots.keys()) for time in slots[day]) >= 2)
@@ -115,11 +111,8 @@ def main(args):
 				model.AddMinEquality(c[-1], [meetings[(day, time, person)] for person in combination])
 		model.Add(sum(c) <= 1)
 
-	# Alice cannot meet on Tuesdays.
-	#model.Add(sum(meetings[('Tue', time, 'Alice')] for time in slots['Tue']) == 0)
-
-	# Frank cannot meet on mornings.
-	#model.Add(sum(meetings[(day, time, 'Frank')] for day in list(slots.keys()) for time in slots[day] if datetime.datetime.strptime(time, '%H:%M') < datetime.datetime.strptime('12:00', '%H:%M')) == 0)
+	# Prannoy cannot meet on Wednesdays.
+	model.Add(sum(meetings[('Wed', time, 'Prannoy')] for time in slots['Wed']) == 0)
 
 	solver = ortools.sat.python.cp_model.CpSolver()
 	solver.parameters.linearization_level = 0
